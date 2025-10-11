@@ -11,23 +11,55 @@ import {
 } from "antd";
 import { LockFilled, UserOutlined, LockOutlined } from "@ant-design/icons";
 import AppLogo from "../../assets/Logo/AppLogo.svg";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type { Credentials } from "../../types";
-import { login } from "../../http/api";
+import { login, self, logout } from "../../http/api";
+import { useAuthStore } from "../../store";
+import { usePermission } from "../../hooks/usePermission";
 
 const loginUser = async (userData: Credentials) => {
   // Server call logic
-  console.log({ userData });
   const { data } = await login(userData);
   return data;
 };
 
+const getSelf = async () => {
+  // Server call logic
+  const res = await self();
+  return res?.data;
+};
+
 function LoginPage() {
+  const { isAllowed } = usePermission();
+  const { setUser, logout: logoutFromStore } = useAuthStore();
+
+  const { refetch } = useQuery({
+    queryKey: ["self"],
+    queryFn: getSelf,
+    enabled: false,
+  });
+
+  const { mutate: logoutMutate } = useMutation({
+    mutationKey: ["logout"],
+    mutationFn: logout,
+    onSuccess: async () => {
+      logoutFromStore();
+      return;
+    },
+  });
+
   const { mutate, isPending, isError, error } = useMutation({
     mutationKey: ["login"],
     mutationFn: loginUser,
     onSuccess: async () => {
-      console.log("login successfully");
+      const response = await refetch();
+      // console.log("user data is ", response);
+
+      if (!isAllowed(response.data)) {
+        logoutMutate();
+        return;
+      }
+      setUser(response.data);
     },
   });
 
