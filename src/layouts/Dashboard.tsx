@@ -25,33 +25,42 @@ import { logout } from "../http/api";
 
 const { Sider, Content, Footer, Header } = Layout;
 
-const items = [
-  {
-    key: "/",
-    icon: <Icon component={HomeOutlined} />,
-    label: <NavLink to="/">Home</NavLink>,
-  },
-  {
-    key: "/users",
-    icon: <Icon component={UserOutlined} />,
-    label: <NavLink to="/users">Users</NavLink>,
-  },
-  {
-    key: "/restaurants",
-    icon: <Icon component={BranchesOutlined} />,
-    label: <NavLink to="/restaurants">Restaurants</NavLink>,
-  },
-  {
-    key: "/products",
-    icon: <ProductOutlined />,
-    label: <NavLink to="/products">Products</NavLink>,
-  },
-  {
-    key: "/promos",
-    icon: <CodeSandboxCircleFilled />,
-    label: <NavLink to="/promos">Promos</NavLink>,
-  },
-];
+const getMenuItems = (role: string) => {
+  const baseItems = [
+    {
+      key: "/",
+      icon: <Icon component={HomeOutlined} />,
+      label: <NavLink to="/">Home</NavLink>,
+    },
+    {
+      key: "/restaurants",
+      icon: <Icon component={BranchesOutlined} />,
+      label: <NavLink to="/restaurants">Restaurants</NavLink>,
+    },
+    {
+      key: "/products",
+      icon: <ProductOutlined />,
+      label: <NavLink to="/products">Products</NavLink>,
+    },
+    {
+      key: "/promos",
+      icon: <CodeSandboxCircleFilled />,
+      label: <NavLink to="/promos">Promos</NavLink>,
+    },
+  ];
+
+  if (role === "admin") {
+    const menus = [...baseItems];
+    menus.splice(1, 0, {
+      key: "/users",
+      icon: <Icon component={UserOutlined} />,
+      label: <NavLink to="/users">Users</NavLink>,
+    });
+    return menus;
+  }
+
+  return baseItems;
+};
 
 function Dashboard() {
   const [collapsed, setCollapse] = useState(false);
@@ -73,6 +82,8 @@ function Dashboard() {
   if (user === null) {
     return <Navigate to="/auth/login" replace={true} />;
   }
+
+  const items = getMenuItems(user.role);
 
   return (
     <div>
