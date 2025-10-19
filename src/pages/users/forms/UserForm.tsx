@@ -7,7 +7,9 @@ function UserForm() {
   const { data: tenants } = useQuery({
     queryKey: ["tenants"],
     queryFn: () => {
-      return getTenants().then((res) => res.data);
+      return getTenants().then((res) => {
+        return res.data.data;
+      });
     },
   });
 
@@ -73,22 +75,12 @@ function UserForm() {
                     onChange={() => {}}
                   >
                     {tenants?.map((tenant: Tenant) => {
-                      <Select.Option value={tenant.id}>
-                        {tenant.name}
-                      </Select.Option>;
+                      return (
+                        <Select.Option value={tenant.id}>
+                          {tenant.name}
+                        </Select.Option>
+                      );
                     })}
-                    <Select.Option value="restaurant 1">
-                      Restaurant 1
-                    </Select.Option>
-                    <Select.Option value="restaurant 2">
-                      Restaurant 2
-                    </Select.Option>
-                    <Select.Option value="restaurant 3">
-                      Restaurant 3
-                    </Select.Option>
-                    <Select.Option value="restaurant 4">
-                      Restaurant 4
-                    </Select.Option>
                   </Select>
                 </Form.Item>
               </Col>
