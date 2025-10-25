@@ -1,9 +1,9 @@
 import { Breadcrumb, Button, Drawer, Form, Space, Table, theme } from "antd";
 import { RightOutlined } from "@ant-design/icons";
 import { Link, Navigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { getUsers } from "../http/api";
-import type { User } from "../types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createUsers, getUsers } from "../http/api";
+import type { CreatedUserData, User } from "../types";
 import { useAuthStore } from "../store";
 import UserFilter from "./users/UserFilter";
 import { useState } from "react";
@@ -36,6 +36,9 @@ const columns = [
 ];
 
 function UserPage() {
+  const [form] = Form.useForm();
+  const queryClient = useQueryClient();
+
   const {
     token: { colorBgLayout },
   } = theme.useToken();
@@ -57,6 +60,25 @@ function UserPage() {
   });
 
   const { user } = useAuthStore();
+
+  const { mutate: userMutate } = useMutation({
+    mutationKey: ["user"],
+    mutationFn: async (data: CreatedUserData) =>
+      createUsers(data).then((res) => res.data),
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      return;
+    },
+  });
+
+  const onHandleSubmit = async () => {
+    await form.validateFields();
+    console.log("forms value ", form.getFieldsValue());
+    await userMutate(form.getFieldsValue());
+    form.resetFields();
+    setDrawersOpen(() => false);
+  };
+
   if (user?.role !== "admin") {
     return <Navigate to="/" replace={true} />;
   }
@@ -92,15 +114,27 @@ function UserPage() {
           width={720}
           destroyOnHidden={true}
           open={drawerOpen}
-          onClose={() => setDrawersOpen(() => false)}
+          onClose={() => {
+            form.resetFields();
+            setDrawersOpen(() => false);
+          }}
           extra={
             <Space>
-              <Button>Cancel</Button>
-              <Button type="primary">Submit</Button>
+              <Button
+                onClick={() => {
+                  form.resetFields();
+                  setDrawersOpen(() => false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="primary" onClick={onHandleSubmit}>
+                Submit
+              </Button>
             </Space>
           }
         >
-          <Form layout="vertical">
+          <Form layout="vertical" form={form}>
             <UserForm />
           </Form>
         </Drawer>
