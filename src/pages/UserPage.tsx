@@ -1,7 +1,22 @@
-import { Breadcrumb, Button, Drawer, Form, Space, Table, theme } from "antd";
-import { RightOutlined } from "@ant-design/icons";
+import {
+  Breadcrumb,
+  Button,
+  Drawer,
+  Form,
+  Space,
+  Spin,
+  Table,
+  theme,
+  Typography,
+} from "antd";
+import { RightOutlined, LoadingOutlined } from "@ant-design/icons";
 import { Link, Navigate } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { createUsers, getUsers } from "../http/api";
 import type { CreatedUserData, User } from "../types";
 import { useAuthStore } from "../store";
@@ -9,6 +24,7 @@ import UserFilter from "./users/UserFilter";
 import { useState } from "react";
 import { PlusOutlined } from "@ant-design/icons";
 import UserForm from "./users/forms/UserForm";
+import { PER_PAGE } from "../Constants";
 
 const columns = [
   {
@@ -43,20 +59,29 @@ function UserPage() {
     token: { colorBgLayout },
   } = theme.useToken();
 
+  const [queryParams, setQueriesParams] = useState({
+    perPage: PER_PAGE,
+    currentPage: 1,
+  });
+
   const [drawerOpen, setDrawersOpen] = useState(false);
 
   const {
     data: users,
-    isLoading,
+    isFetching,
     isError,
     error,
   } = useQuery({
-    queryKey: ["users"],
+    queryKey: ["users", queryParams],
     queryFn: () => {
-      return getUsers().then((res) => {
-        return res.data.users;
+      const queryString = new URLSearchParams(
+        queryParams as unknown as Record<string, string>
+      ).toString();
+      return getUsers(queryString).then((res) => {
+        return res.data;
       });
     },
+    placeholderData: keepPreviousData,
   });
 
   const { user } = useAuthStore();
@@ -73,7 +98,6 @@ function UserPage() {
 
   const onHandleSubmit = async () => {
     await form.validateFields();
-    console.log("forms value ", form.getFieldsValue());
     await userMutate(form.getFieldsValue());
     form.resetFields();
     setDrawersOpen(() => false);
@@ -103,10 +127,29 @@ function UserPage() {
             Add User
           </Button>
         </UserFilter>
-        {isLoading && <h1>Loading...</h1>}
-        {isError && <div>{error.message}</div>}
+        {isFetching && (
+          <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
+        )}
+        {isError && (
+          <Typography.Text type="danger">{error.message}</Typography.Text>
+        )}
 
-        <Table columns={columns} dataSource={users} rowKey="id" />
+        <Table
+          columns={columns}
+          dataSource={users?.users}
+          rowKey="id"
+          pagination={{
+            total: users?.count,
+            pageSize: queryParams.perPage,
+            current: queryParams.currentPage,
+            onChange: (page) => {
+              setQueriesParams((prev) => ({
+                ...prev,
+                currentPage: page,
+              }));
+            },
+          }}
+        />
 
         <Drawer
           title="create user"
