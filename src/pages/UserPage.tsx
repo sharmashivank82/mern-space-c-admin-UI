@@ -62,6 +62,7 @@ function UserPage() {
   const [queryParams, setQueriesParams] = useState({
     perPage: PER_PAGE,
     currentPage: 1,
+    q: "",
   });
 
   const [drawerOpen, setDrawersOpen] = useState(false);
@@ -116,6 +117,8 @@ function UserPage() {
         />
         <UserFilter
           onFilterChange={(filterName: string, filterValue: string) => {
+            if (filterName === "searchFilter")
+              setQueriesParams((prev) => ({ ...prev, q: filterValue }));
             console.log({ filterName, filterValue });
           }}
         >
