@@ -18,7 +18,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { createUsers, getUsers } from "../http/api";
-import type { CreatedUserData, User } from "../types";
+import type { CreatedUserData, FieldData, User } from "../types";
 import { useAuthStore } from "../store";
 import UserFilter from "./users/UserFilter";
 import { useState } from "react";
@@ -53,6 +53,7 @@ const columns = [
 
 function UserPage() {
   const [form] = Form.useForm();
+  const [filterForm] = Form.useForm();
   const queryClient = useQueryClient();
 
   const {
@@ -75,8 +76,12 @@ function UserPage() {
   } = useQuery({
     queryKey: ["users", queryParams],
     queryFn: () => {
+      const filteredParams = Object.fromEntries(
+        Object.entries(queryParams).filter((item) => !!item[1])
+      );
+
       const queryString = new URLSearchParams(
-        queryParams as unknown as Record<string, string>
+        filteredParams as unknown as Record<string, string>
       ).toString();
       return getUsers(queryString).then((res) => {
         return res.data;
@@ -104,6 +109,18 @@ function UserPage() {
     setDrawersOpen(() => false);
   };
 
+  const onFilterChange = (changedFields: FieldData[]) => {
+    const changeFilterFields = changedFields
+      .map((item) => {
+        return {
+          [item.name[0]]: item.value,
+        };
+      })
+      .reduce((acc, item) => ({ ...acc, ...item }), {});
+    setQueriesParams((prev) => ({ ...prev, ...changeFilterFields }));
+    console.log({ changeFilterFields });
+  };
+
   if (user?.role !== "admin") {
     return <Navigate to="/" replace={true} />;
   }
@@ -115,21 +132,17 @@ function UserPage() {
           items={[{ title: <Link to="/">Dashboard</Link> }, { title: "Users" }]}
           separator={<RightOutlined />}
         />
-        <UserFilter
-          onFilterChange={(filterName: string, filterValue: string) => {
-            if (filterName === "searchFilter")
-              setQueriesParams((prev) => ({ ...prev, q: filterValue }));
-            console.log({ filterName, filterValue });
-          }}
-        >
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setDrawersOpen(() => true)}
-          >
-            Add User
-          </Button>
-        </UserFilter>
+        <Form form={filterForm} onFieldsChange={onFilterChange}>
+          <UserFilter>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setDrawersOpen(() => true)}
+            >
+              Add User
+            </Button>
+          </UserFilter>
+        </Form>
         {isFetching && (
           <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
         )}
