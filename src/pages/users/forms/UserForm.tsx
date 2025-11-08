@@ -3,7 +3,7 @@ import { Card, Col, Form, Input, Row, Select, Space } from "antd";
 import { getTenants } from "../../../http/api";
 import type { Tenant } from "../../../types";
 
-function UserForm() {
+function UserForm({ isEditMode = false }: { isEditMode: boolean }) {
   const { data: tenants } = useQuery({
     queryKey: ["tenants"],
     queryFn: () => {
@@ -68,24 +68,26 @@ function UserForm() {
             </Row>
           </Card>
 
-          <Card title="Security info" variant="borderless">
-            <Row gutter={20}>
-              <Col span={12}>
-                <Form.Item
-                  label="Password"
-                  name="password"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Password is required",
-                    },
-                  ]}
-                >
-                  <Input size="large" type="password" />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Card>
+          {!isEditMode && (
+            <Card title="Security info" variant="borderless">
+              <Row gutter={20}>
+                <Col span={12}>
+                  <Form.Item
+                    label="Password"
+                    name="password"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Password is required",
+                      },
+                    ]}
+                  >
+                    <Input size="large" type="password" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Card>
+          )}
 
           <Card title="Role" variant="borderless">
             <Row gutter={20}>
@@ -101,6 +103,7 @@ function UserForm() {
                   ]}
                 >
                   <Select
+                    id="selectBoxInUserForm"
                     size="large"
                     allowClear={true}
                     style={{ width: "100%" }}

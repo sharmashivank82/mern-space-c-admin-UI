@@ -17,11 +17,11 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { createUsers, getUsers } from "../http/api";
+import { createUsers, getUsers, updateUsers } from "../http/api";
 import type { CreatedUserData, FieldData, User } from "../types";
 import { useAuthStore } from "../store";
 import UserFilter from "./users/UserFilter";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PlusOutlined } from "@ant-design/icons";
 import UserForm from "./users/forms/UserForm";
 import { PER_PAGE } from "../Constants";
@@ -76,6 +76,19 @@ function UserPage() {
   });
 
   const [drawerOpen, setDrawersOpen] = useState(false);
+  const [currentEditingUser, setCurrentsEditingUser] = useState<User | null>(
+    null
+  );
+
+  useEffect(() => {
+    if (currentEditingUser) {
+      setDrawersOpen(() => true);
+      form.setFieldsValue({
+        ...currentEditingUser,
+        tenantId: currentEditingUser?.tenant?.id,
+      });
+    }
+  }, [currentEditingUser, form]);
 
   const {
     data: users,
@@ -111,9 +124,25 @@ function UserPage() {
     },
   });
 
+  const { mutate: updateUserMutate } = useMutation({
+    mutationKey: ["update-user"],
+    mutationFn: async (data: CreatedUserData) =>
+      updateUsers(data, currentEditingUser!.id).then((res) => res.data),
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      return;
+    },
+  });
+
   const onHandleSubmit = async () => {
     await form.validateFields();
-    await userMutate(form.getFieldsValue());
+    const isEditMode = !!currentEditingUser;
+    if (isEditMode) {
+      await updateUserMutate(form.getFieldsValue());
+    } else {
+      await userMutate(form.getFieldsValue());
+    }
+    setCurrentsEditingUser(() => null);
     form.resetFields();
     setDrawersOpen(() => false);
   };
@@ -177,7 +206,26 @@ function UserPage() {
         )}
 
         <Table
-          columns={columns}
+          columns={[
+            ...columns,
+            {
+              title: "Actions",
+              render: (_: string, record: User) => {
+                return (
+                  <Space>
+                    <Button
+                      type="link"
+                      onClick={() => {
+                        setCurrentsEditingUser(() => record);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  </Space>
+                );
+              },
+            },
+          ]}
           dataSource={users?.users}
           rowKey="id"
           pagination={{
@@ -197,7 +245,7 @@ function UserPage() {
         />
 
         <Drawer
-          title="create user"
+          title={currentEditingUser ? "Edit User" : "Add User"}
           styles={{ body: { background: colorBgLayout } }}
           width={720}
           destroyOnHidden={true}
@@ -205,6 +253,7 @@ function UserPage() {
           onClose={() => {
             form.resetFields();
             setDrawersOpen(() => false);
+            setCurrentsEditingUser(() => null);
           }}
           extra={
             <Space>
@@ -212,6 +261,7 @@ function UserPage() {
                 onClick={() => {
                   form.resetFields();
                   setDrawersOpen(() => false);
+                  setCurrentsEditingUser(() => null);
                 }}
               >
                 Cancel
@@ -223,7 +273,7 @@ function UserPage() {
           }
         >
           <Form layout="vertical" form={form}>
-            <UserForm />
+            <UserForm isEditMode={!!currentEditingUser} />
           </Form>
         </Drawer>
       </Space>

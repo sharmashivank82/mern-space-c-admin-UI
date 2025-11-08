@@ -8,5 +8,6 @@ export const logout = () => api.post('/auth/logout')
 
 export const getUsers = (queryString: string) => api.get(`/users?${queryString}`)
 export const createUsers = (user: CreatedUserData) => api.post("/users/create", user)
+export const updateUsers = (user: CreatedUserData, id: string) => api.patch(`/users/update/${id}`, user)
 
 export const getTenants = () => api.get("/tenants")
