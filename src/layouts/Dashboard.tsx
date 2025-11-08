@@ -1,4 +1,4 @@
-import { Navigate, NavLink, Outlet } from "react-router-dom";
+import { Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store";
 import {
   Avatar,
@@ -33,11 +33,6 @@ const getMenuItems = (role: string) => {
       label: <NavLink to="/">Home</NavLink>,
     },
     {
-      key: "/restaurants",
-      icon: <Icon component={BranchesOutlined} />,
-      label: <NavLink to="/restaurants">Restaurants</NavLink>,
-    },
-    {
       key: "/products",
       icon: <ProductOutlined />,
       label: <NavLink to="/products">Products</NavLink>,
@@ -56,6 +51,11 @@ const getMenuItems = (role: string) => {
       icon: <Icon component={UserOutlined} />,
       label: <NavLink to="/users">Users</NavLink>,
     });
+    menus.splice(2, 0, {
+      key: "/restaurants",
+      icon: <Icon component={BranchesOutlined} />,
+      label: <NavLink to="/restaurants">Restaurants</NavLink>,
+    });
     return menus;
   }
 
@@ -68,6 +68,7 @@ function Dashboard() {
     token: { colorBgContainer },
   } = theme.useToken();
 
+  const location = useLocation();
   const { user, logout: logoutFromStore } = useAuthStore();
 
   const { mutate: logoutMutate } = useMutation({
@@ -80,7 +81,12 @@ function Dashboard() {
   });
 
   if (user === null) {
-    return <Navigate to="/auth/login" replace={true} />;
+    return (
+      <Navigate
+        to={`/auth/login?returnTo=${location.pathname}`}
+        replace={true}
+      />
+    );
   }
 
   const items = getMenuItems(user.role);
@@ -99,7 +105,7 @@ function Dashboard() {
           </div>
           <Menu
             theme="light"
-            defaultSelectedKeys={["/"]}
+            defaultSelectedKeys={[location.pathname]}
             mode="inline"
             items={items}
           />
