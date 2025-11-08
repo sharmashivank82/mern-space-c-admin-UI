@@ -21,10 +21,11 @@ import { createUsers, getUsers } from "../http/api";
 import type { CreatedUserData, FieldData, User } from "../types";
 import { useAuthStore } from "../store";
 import UserFilter from "./users/UserFilter";
-import { useState } from "react";
+import React, { useState } from "react";
 import { PlusOutlined } from "@ant-design/icons";
 import UserForm from "./users/forms/UserForm";
 import { PER_PAGE } from "../Constants";
+import { debounce } from "lodash";
 
 const columns = [
   {
@@ -48,6 +49,14 @@ const columns = [
     title: "Role",
     dataIndex: "role",
     key: "role",
+  },
+  {
+    title: "Restaurant",
+    dataIndex: "tenant",
+    key: "tenant",
+    render: (_text: string, record: User) => {
+      return <div>{record.tenant?.name}</div>;
+    },
   },
 ];
 
@@ -109,6 +118,13 @@ function UserPage() {
     setDrawersOpen(() => false);
   };
 
+  const debouncedQUpdate = React.useMemo(() => {
+    return debounce((value: string | undefined) => {
+      if (value)
+        setQueriesParams((prev) => ({ ...prev, q: value, currentPage: 1 }));
+    }, 500);
+  }, []);
+
   const onFilterChange = (changedFields: FieldData[]) => {
     const changeFilterFields = changedFields
       .map((item) => {
@@ -117,7 +133,17 @@ function UserPage() {
         };
       })
       .reduce((acc, item) => ({ ...acc, ...item }), {});
-    setQueriesParams((prev) => ({ ...prev, ...changeFilterFields }));
+
+    if ("q" in changeFilterFields) {
+      debouncedQUpdate(changeFilterFields.q);
+    } else {
+      setQueriesParams((prev) => ({
+        ...prev,
+        ...changeFilterFields,
+        currentPage: 1,
+      }));
+    }
+
     console.log({ changeFilterFields });
   };
 
@@ -163,6 +189,9 @@ function UserPage() {
                 ...prev,
                 currentPage: page,
               }));
+            },
+            showTotal: (total: number, range: number[]) => {
+              return `Showing ${range[0]}-${range[1]} of ${total} items`;
             },
           }}
         />
